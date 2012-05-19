@@ -1,0 +1,3 @@
+[submodule "vendor/evernote-sdk-ruby"]
+	path = vendor/evernote-sdk-ruby
+	url = https://github.com/evernote/evernote-sdk-ruby.git
