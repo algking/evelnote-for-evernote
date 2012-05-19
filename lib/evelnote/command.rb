@@ -27,6 +27,9 @@ OptionParser.new do |opt|
   opt.parse!(ARGV)
 end
 
+edam.username = gets_ascii8bit.strip while edam.username.nil?
+edam.password = gets_ascii8bit.strip while edam.password.nil?
+
 edam.authenticate! do |error|
   if error
     puts false.to_sexp
@@ -38,10 +41,10 @@ edam.authenticate! do |error|
 
   loop do 
     case gets_ascii8bit.strip
-    when /list\s+notebooks/
+    when /get\s+notebooks/
       puts edam.notebooks.to_sexp
 
-    when /list\s+tags/
+    when /get\s+tags/
       puts edam.tags.to_sexp
 
     when /query\s+(.+)/
@@ -53,7 +56,7 @@ edam.authenticate! do |error|
     when /get\s+note\s+([\w-]+)/
       puts edam.get_note($1, :with_content => true).to_sexp
 
-    when /save\s+note/
+    when /post\s+note/
       # Header
       options = {}
       while (line = gets_ascii8bit) != "\n"

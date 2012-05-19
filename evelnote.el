@@ -73,10 +73,8 @@
 
 (defvar evelnote-edam-process nil)
 
-(defvar evelnote-command-path
-  (expand-file-name (concat (file-name-directory (or load-file-name
-                                                     buffer-file-name))
-                            "bin/evelnote"))
+(defvar evelnote-command
+  "evelnote"
   "Path of api script")
 
 (defvar evelnote-coding-system 'utf-8)
@@ -692,7 +690,7 @@ BUFFER defaults to the current buffer."
   (message "authenticate...")
   (let* ((process (start-process "evelnote"
                                  evelnote-edam-buffer-name
-                                 evelnote-command-path
+                                 evelnote-command
                                  "--debug"
                                  "-u" evelnote-username
                                  "-p" evelnote-password)))
@@ -900,7 +898,7 @@ BUFFER defaults to the current buffer."
 (defun evelnote-reload-notebook-list ()
   (interactive)
   (message "Get notebook list...")
-  (let ((list (evelnote-send "list notebooks\n")))
+  (let ((list (evelnote-send "get notebooks\n")))
     (setq evelnote-notebook-list nil
           evelnote-default-notebook nil)
     (dolist (notebook list)

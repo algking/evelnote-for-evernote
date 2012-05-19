@@ -2,39 +2,30 @@ module Evelnote
   class VersionCheckError < StandardError; end
 
   class EDAM
-    OAUTH_CONSUMER_KEY    = 'hadashikick-8299'
-    OAUTH_CONSUMER_SECRET = '44200b03af9678b4'
+    CONSUMER_KEY       = 'hadashikick'
+    CONSUMER_SECRET    = 'a8dd6da79fa8d5dc'
+    URL_BASE           = 'https://www.evernote.com'
+    USERSTORE_URL      = "#{URL_BASE}/edam/user"
+    NOTESTORE_URL_BASE = "#{URL_BASE}/edam/note"
     
     attr_accessor :username, :password
     attr_reader :auth
 
     def initialize(*args)
       options = args.last.is_a?(Hash) ? args.pop : {}
-
       @username = args.shift
       @password = args.shift
-
-      # @host = 'sandbox.evernote.com'
-      @host = (options.delete(:sandbox) ? 'sandbox' : 'www') << '.evernote.com'
-      @request_token_url  = "https://#{@host}/oauth"
-      @access_token_url   = "https://#{@host}/oauth"
-      @authorization_url  = "https://#{@host}/OAuth.action"
-
-      @user_store_url     = "https://#{@host}/edam/user"
-      @notestore_url_base = "https://#{@host}/edam/note"
-
-      @logger = Logger.new(File.join(File.dirname(__FILE__), '../api.log'))
     end
 
     def authenticate!
       error = nil
-        consumer = OAuth::Consumer.new(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET,
-                                       :site => @host,
-                                       :request_token_path => '/oauth',
-                                       :access_token_path  => '/oauth',
-                                       :authorize_path     => '/OAuth.action')
-        request_token = consumer.get_request_token
-        puts request_token.authorize_url
+      begin
+        @auth = userstore.authenticate(username, password,
+          CONSUMER_KEY, CONSUMER_SECRET)
+      rescue => error
+      end
+
+      yield error
     end
 
     def notebooks(cache=true)
@@ -97,7 +88,7 @@ module Evelnote
     def userstore
       return @userstore if @userstore
 
-      userstore_transport = Thrift::HTTPClientTransport.new(userstore_url)
+      userstore_transport = Thrift::HTTPClientTransport.new(USERSTORE_URL)
       userstore_protocol  = Thrift::BinaryProtocol.new(userstore_transport)
       @userstore = Evernote::EDAM::UserStore::UserStore::Client.new(userstore_protocol)
       
@@ -123,7 +114,7 @@ module Evelnote
     def notestore
       return @notestore if @notestore
 
-      notestore_url = File.join(@notestore_url_base, auth.user.shardId)
+      notestore_url = File.join(NOTESTORE_URL_BASE, auth.user.shardId)
       notestore_transport = Thrift::HTTPClientTransport.new(notestore_url)
       notestore_protocol = Thrift::BinaryProtocol.new(notestore_transport)
       @notestore = Evernote::EDAM::NoteStore::NoteStore::Client.new(notestore_protocol)

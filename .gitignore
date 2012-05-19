@@ -1,5 +1,6 @@
 *.gem
+*.log
 .bundle
 Gemfile.lock
 pkg/*
-vendor/bundle      
+vendor/bundle/
