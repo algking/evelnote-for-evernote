@@ -1,3 +1,5 @@
+require 'optparse'
+
 include Evelnote
 
 edam = EDAM.new
@@ -33,8 +35,7 @@ edam.password = gets_ascii8bit.strip while edam.password.nil?
 edam.authenticate! do |error|
   if error
     puts false.to_sexp
-    puts error.inspect
-    exit
+    raise error
   end
 
   puts true.to_sexp

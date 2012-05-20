@@ -702,7 +702,6 @@ BUFFER defaults to the current buffer."
   (let* ((process (eval `(start-process "evelnote"
                                         evelnote-edam-buffer-name
                                         ,@(split-string evelnote-command)
-                                        "--debug"
                                         "-u" evelnote-username
                                         "-p" evelnote-password))))
 

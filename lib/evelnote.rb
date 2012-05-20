@@ -1,6 +1,7 @@
 require 'kramdown'
 
-require 'thrift' 
+
+require 'evernote-sdk-ruby/lib/thrift' 
 require 'Evernote/EDAM/user_store'
 require 'Evernote/EDAM/user_store_constants'
 require 'Evernote/EDAM/note_store'
