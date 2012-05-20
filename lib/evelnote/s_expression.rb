@@ -76,7 +76,7 @@ module Evelnote
       }
 
       class_name_base = self.class.name[/::([^:]+?)$/, 1].sub(/NoteList/i, 'Notelist')
-      struct_name = "evernote-#{class_name_base.dasherize}"
+      struct_name = "evelnote-#{class_name_base.dasherize}"
       "(make-#{struct_name} #{fields.join(' ')})" 
     end
   end

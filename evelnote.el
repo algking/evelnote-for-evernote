@@ -250,7 +250,7 @@
       `(let ((,sym ,(car cl1)))
 	 (if ,sym
 	     (let ((it ,sym)) ,@(cdr cl1))
-	   (acond ,@(cdr clauses)))))))
+	   (evelnote-acond ,@(cdr clauses)))))))
 
 ;; 
 ;; evelnote-notelist-mode (global)
@@ -332,11 +332,10 @@ BUFFER defaults to the current buffer."
 
 ;; evelnote-notelist methods
 
-(defun evelnote-notelist-render (notelist)
+(defun evelnote-notelist-render (notelist query)
   (unless (evelnote-notelist-p notelist)
     (error "\"%S\" is invalid as a Evernote note list" notelist))
-  (let* ((query (evelnote-notelist-query notelist))
-         (buffer (or (evelnote-notelist-buffer-get query)
+  (let* ((buffer (or (evelnote-notelist-buffer-get query)
                      (with-current-buffer (generate-new-buffer query)
                        (evelnote-notelist-mode)
                        (current-buffer))))
@@ -353,7 +352,7 @@ BUFFER defaults to the current buffer."
 
       (insert (propertize
                (format "Evernote searched:\"%s\" total:%d\n"
-                       (evelnote-notelist-query notelist)
+                       query
                        (evelnote-notelist-total-notes notelist))
               'face 'evelnote-notelist-header
               'evelnote-notelist-header t))
@@ -688,12 +687,12 @@ BUFFER defaults to the current buffer."
 				 evelnote-username))))
 
   (message "authenticate...")
-  (let* ((process (start-process "evelnote"
-                                 evelnote-edam-buffer-name
-                                 evelnote-command
-                                 "--debug"
-                                 "-u" evelnote-username
-                                 "-p" evelnote-password)))
+  (let* ((process (eval `(start-process "evelnote"
+                                        evelnote-edam-buffer-name
+                                        ,@(split-string evelnote-command)
+                                        "--debug"
+                                        "-u" evelnote-username
+                                        "-p" evelnote-password))))
 
     (when (fboundp 'set-process-coding-system)
       (set-process-coding-system process 
@@ -886,8 +885,7 @@ BUFFER defaults to the current buffer."
   (let ((res (evelnote-send (format "query %s\n" query))))
     (unless (evelnote-notelist-p res)
       (error "invalid response: %S" res))
-    (setf (evelnote-notelist-query res) query)
-    (switch-to-buffer (evelnote-notelist-render res))
+    (switch-to-buffer (evelnote-notelist-render res query))
     (message "%d notes" (evelnote-notelist-total-notes res))))
 
 (defun evelnote-recent ()
@@ -925,4 +923,3 @@ BUFFER defaults to the current buffer."
 
 (provide 'evelnote)
 ;;; evelnote.el ends here
-
