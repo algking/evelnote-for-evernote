@@ -330,6 +330,17 @@ BUFFER defaults to the current buffer."
                (string-equal evelnote-notelist-query query))
         return b))
 
+;; evelnote-notelist-buffer utils
+
+(defun* evelnote-notelist-buffer-position-at (note)
+  (let ((pos)))
+  (save-excursion
+    (goto-char (point-min))
+    (while (setq pos (next-single-property-change (point) 'evelnote-note-title))
+      (when (equal (evelnote-note-guid note)
+                   (evelnote-note-guid (get-text-property pos 'evelnote-note)))
+        (return-from evelnote-notelist-buffer-position-at)))))
+
 ;; evelnote-notelist methods
 
 (defun evelnote-notelist-render (notelist query)
@@ -516,8 +527,7 @@ BUFFER defaults to the current buffer."
 (defvar evelnote-mode-map (make-sparse-keymap))
 (dolist (key-info '(("\C-x\C-s" . evelnote-save-buffer)
                     ("\C-x\C-r" . evelnote-reload)
-                    ("\C-x\C-d" . evelnote-jump-to-notelist)
-                    ))
+                    ("\C-x\C-d" . evelnote-jump-to-notelist)))
   (define-key evelnote-mode-map (car key-info) (cdr key-info)))
 
 ;; evelnote-note-buffer methods
@@ -605,15 +615,18 @@ BUFFER defaults to the current buffer."
      
      (evelnote-save note))))
 
-;; pending
 (defun evelnote-jump-to-notelist ()
   (interactive)
-  (evelnote-aif (loop for notelist-buffer in (evelnote-notelist-buffer-list-get)
-                        when (with-current-buffer notelist-buffer
-                               nil)
-                        return notelist-buffer)
-      (switch-to-buffer it)
-    (message "notelist buffer not found.")))
+  (let ((note evelnote-note))
+    (evelnote-aif (loop for notelist-buffer in (evelnote-notelist-buffer-list-get)
+                        for note-pos = (with-current-buffer notelist-buffer
+                                         (evelnote-notelist-buffer-position-at note))
+                        when note-pos
+                        return (cons notelist-buffer note-pos))
+        (progn
+          (switch-to-buffer (car it))
+          (goto-char (cdr it)))
+      (message "notelist buffer not found."))))
 
 ;; 
 ;; evernote edam interface
@@ -753,7 +766,7 @@ BUFFER defaults to the current buffer."
               (stringp content)) (error "invalid content: %S" content))
 
   (evelnote-with-edam-buffer
-   (send "save note\n")
+   (send "post note\n")
 
    (send (format "Content-Type: %s" content-type))
    (dolist (field-name '(guid title notebook-guid))
@@ -827,11 +840,13 @@ BUFFER defaults to the current buffer."
            (match-string 0 content-or-buffer)))
 
         ((bufferp content-or-buffer)
-         (save-excursion
-           (switch-to-buffer content-or-buffer)
-           (goto-char (point-min))
-           (re-search-forward "\\w" (point-max) t)
-           (buffer-substring-no-properties (- (point) 1) (point-at-eol))))))
+         (if evelnote-mode
+             (evelnote-note-title evelnote-note)
+           (save-excursion
+             (switch-to-buffer content-or-buffer)
+             (goto-char (point-min))
+             (re-search-forward "\\w" (point-max) t)
+             (buffer-substring-no-properties (- (point) 1) (point-at-eol)))))))
 
 (defun evelnote-read-notebook-guid ()
   (let* ((default-notebook-name (when (evelnote-default-notebook)
@@ -932,6 +947,12 @@ BUFFER defaults to the current buffer."
           (evelnote-note-tag-names note) (evelnote-read-tag-names))
     (evelnote-save note)))
 
+(defun evelnote-new (title)
+  (interactive "stitle: ")
+  (switch-to-buffer
+   (with-current-buffer (generate-new-buffer title)
+     (evelnote-mode t)
+     (current-buffer))))
+
 (provide 'evelnote)
 ;;; evelnote.el ends here
-
