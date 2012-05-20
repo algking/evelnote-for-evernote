@@ -515,7 +515,9 @@ BUFFER defaults to the current buffer."
 
 (defvar evelnote-mode-map (make-sparse-keymap))
 (dolist (key-info '(("\C-x\C-s" . evelnote-save-buffer)
-                    ("\C-x\C-r" . evelnote-reload)))
+                    ("\C-x\C-r" . evelnote-reload)
+                    ("\C-x\C-d" . evelnote-jump-to-notelist)
+                    ))
   (define-key evelnote-mode-map (car key-info) (cdr key-info)))
 
 ;; evelnote-note-buffer methods
@@ -602,6 +604,16 @@ BUFFER defaults to the current buffer."
              (evelnote-note-tag-names note) (evelnote-read-tag-names)))
      
      (evelnote-save note))))
+
+;; pending
+(defun evelnote-jump-to-notelist ()
+  (interactive)
+  (evelnote-aif (loop for notelist-buffer in (evelnote-notelist-buffer-list-get)
+                        when (with-current-buffer notelist-buffer
+                               nil)
+                        return notelist-buffer)
+      (switch-to-buffer it)
+    (message "notelist buffer not found.")))
 
 ;; 
 ;; evernote edam interface
@@ -923,3 +935,4 @@ BUFFER defaults to the current buffer."
 
 (provide 'evelnote)
 ;;; evelnote.el ends here
+
