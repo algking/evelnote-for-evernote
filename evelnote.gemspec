@@ -7,9 +7,9 @@ Gem::Specification.new do |s|
   s.version     = Evelnote::VERSION
   s.authors     = ["f-kubotar"]
   s.email       = ["dev@hadashikick.jp"]
-  s.homepage    = "http://github.com/f-kubotar/evernote.el"
+  s.homepage    = "http://github.com/f-kubotar/evelnote"
   s.summary     = %q{Evernote client for Emacs}
-  s.description = %q{Evernote client for Emacs}
+  s.description = %q{Evernote client for Emacs. Please see http://github.com/f-kubotar/evelnote}
 
   s.rubyforge_project = "evelnote"
 
