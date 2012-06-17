@@ -96,6 +96,7 @@
 
 (defvar evelnote-note nil)
 (make-variable-buffer-local 'evelnote-note)
+(make-variable-buffer-local 'evelnote-from-notelist-buffer)
 
 ;; 
 ;; struct
@@ -238,6 +239,8 @@
 	       args)))
 
 (defmacro evelnote-aand (&rest args)
+  "Anaphoric and."
+  (declare (indent 1))
   (cond ((null args) t)
 	((null (cdr args)) (car args))
 	(t `(evelnote-aif ,(car args) (evelnote-aand ,@(cdr args))))))
@@ -251,6 +254,19 @@
 	 (if ,sym
 	     (let ((it ,sym)) ,@(cdr cl1))
 	   (evelnote-acond ,@(cdr clauses)))))))
+
+;; 
+;; advice
+;;
+
+(defadvice dired-jump (around evelnote-jump-to-notelist (activate))
+  (if (and (null buffer-file-name)
+           evelnote-from-notelist-buffer
+           (bufferp evelnote-from-notelist-buffer)
+           (with-current-buffer evelnote-from-notelist-buffer
+             (eq major-mode evelnote-notelist-mode)))
+      (switch-to-buffer evelnote-from-notelist-buffer)
+    ad-do-it))
 
 ;; 
 ;; evelnote-notelist-mode (global)
@@ -506,7 +522,8 @@ BUFFER defaults to the current buffer."
    ((get-text-property (point) 'evelnote-tag-name)
     (evelnote-search (format "tag:%s" it)))
    ((get-text-property (point) 'evelnote-note)
-    (evelnote-note-render it))))
+    (evelnote-note-render it (when (eq major-mode 'evelnote-notelist-mode)
+                               (current-buffer))))))
 
 ;; 
 ;; evelnote-mode (minor)
@@ -527,7 +544,8 @@ BUFFER defaults to the current buffer."
 (defvar evelnote-mode-map (make-sparse-keymap))
 (dolist (key-info '(("\C-x\C-s" . evelnote-save-buffer)
                     ("\C-x\C-r" . evelnote-reload)
-                    ("\C-x\C-d" . evelnote-jump-to-notelist)))
+                    ;; ("\C-x\C-d" . evelnote-jump-to-parent-notelist))
+                  )
   (define-key evelnote-mode-map (car key-info) (cdr key-info)))
 
 ;; evelnote-note-buffer methods
@@ -562,7 +580,7 @@ BUFFER defaults to the current buffer."
   (setq evelnote-note note)
   (setf (gethash (evelnote-note-guid note) evelnote-note-buffers) (current-buffer)))
 
-(defun evelnote-note-render (note)
+(defun evelnote-note-render (note &optional from-notelist-buffer)
   (evelnote-note-validate note '(guid))
 
   (let ((guid (evelnote-note-guid note))
@@ -577,7 +595,9 @@ BUFFER defaults to the current buffer."
           (evelnote-mode-setup note)
           (insert (evelnote-note-content evelnote-note))
           (goto-char (point-min)))
-        (switch-to-buffer buffer)))))
+        (switch-to-buffer buffer)))
+    (setq evelnote-from-notelist-buffer
+          (or from-notelist-buffer evelnote-from-notelist-buffer))))
 
 ;; evelnote-mode commands
 
@@ -614,6 +634,13 @@ BUFFER defaults to the current buffer."
              (evelnote-note-tag-names note) (evelnote-read-tag-names)))
      
      (evelnote-save note))))
+
+(defun evelnote-jump-to-parent-notelist ()
+  (when (and evelnote-from-notelist-buffer
+             (bufferp evelnote-from-notelist-buffer)
+             (with-current-buffer evelnote-from-notelist-buffer
+               (eq major-mode 'evelnote-notelist-mode)))
+    (switch-to-buffer evelnote-from-notelist-buffer)))
 
 (defun evelnote-jump-to-notelist ()
   (interactive)
@@ -752,7 +779,7 @@ BUFFER defaults to the current buffer."
           (error "authenticate '%s' faild. reason: %s"
                  evelnote-username
                  (buffer-substring-no-properties (point-min) (point-max))))
-          ))))))
+          ))))
 
 (defun* evelnote-save (note)
   (unless (evelnote-note-p note)
