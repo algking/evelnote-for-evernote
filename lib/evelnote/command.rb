@@ -6,7 +6,7 @@ edam = EDAM.new
 
 def gets_ascii8bit
   line = gets
-  LOG.debug(line)
+  Evelnote.logger.debug(line)
 
   if line.respond_to? :force_encoding
     line.force_encoding('ASCII-8BIT') # Thrift側では、文字列をバイト列として扱う
@@ -16,7 +16,7 @@ end
 
 OptionParser.new do |opt|
   opt.on("--debug") {
-    LOG.level = Logger::DEBUG
+    Evelnote.logger.level = Logger::DEBUG
   }
 
   [ ['u', 'username'],
@@ -29,12 +29,16 @@ OptionParser.new do |opt|
   opt.parse!(ARGV)
 end
 
-edam.username = gets_ascii8bit.strip while edam.username.nil?
 edam.password = gets_ascii8bit.strip while edam.password.nil?
 
 edam.authenticate! do |error|
   if error
-    puts false.to_sexp
+    case error
+    when error.is_a?(Evernote::EDAM::Error::EDAMUserException)
+      puts :evelnote_authenticate_faild.to_sexp
+    else
+      puts false.to_sexp
+    end
     raise error
   end
 

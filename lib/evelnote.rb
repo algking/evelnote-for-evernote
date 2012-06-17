@@ -13,6 +13,10 @@ require 'evelnote/enml'
 require 'evelnote/edam'
 
 module Evelnote
-  LOG = Logger.new(open(File.join(File.dirname(__FILE__), '../debug.log'), 'w'))
-  LOG.level = Logger::INFO
+  def self.logger
+    @logger ||= Logger.new(open(File.join(File.dirname(__FILE__),
+                                          '../debug.log'), 'w')).tap do |logger|
+      logger.level = Logger::INFO
+    end
+  end
 end

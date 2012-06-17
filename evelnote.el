@@ -692,14 +692,15 @@ BUFFER defaults to the current buffer."
 (defun evelnote-kill ()
   "Kill evernote process"
   (interactive)
+  (evelnote-awhen (and evelnote-edam-process
+                       (process-buffer evelnote-edam-process))
+    (kill-buffer it))
   (when (and evelnote-edam-process
              (eq (process-status evelnote-edam-process) 'run))
-    (let ((buffer (process-buffer evelnote-edam-process)))
-      (when buffer (kill-buffer buffer)))
-    (kill-process evelnote-edam-process)
-    (setq evelnote-edam-process nil
-          evelnote-username nil
-          evelnote-password nil)))
+    (kill-process evelnote-edam-process))
+  (setq evelnote-edam-process nil
+        evelnote-username nil
+        evelnote-password nil))
 
 (defun evelnote-authenticate ()
   (evelnote-kill)
@@ -716,7 +717,8 @@ BUFFER defaults to the current buffer."
                                         evelnote-edam-buffer-name
                                         ,@(split-string evelnote-command)
                                         "-u" evelnote-username
-                                        "-p" evelnote-password))))
+                                        "-p" evelnote-password
+                                        ))))
 
     (when (fboundp 'set-process-coding-system)
       (set-process-coding-system process 
@@ -733,15 +735,24 @@ BUFFER defaults to the current buffer."
         (goto-char (point-min))
         (block 'auth
           (while (not (eobp))
-            (when (eq t (read (current-buffer)))
-              (add-hook 'kill-emacs-hook #'evelnote-kill)
-              (message (format "authenticate '%s' success." evelnote-username))
-              (return-from 'auth process)))
-          (evelnote-kill)
+            (let ((res (read (current-buffer))))
+              (cond ((eq res t)
+                     (add-hook 'kill-emacs-hook #'evelnote-kill)
+                     (message (format "authenticate '%s' success." evelnote-username))
+                     (return-from 'auth process))
+                    ((eq res 'evelnote-authenticate-faild)
+                     (evelnote-kill)
+                     (error "authenticate faild. please retry."))
+                    ((eq res nil)
+                     (evelnote-kill)
+                     (error "authenticate '%s' faild. reason: %s"
+                            evelnote-username
+                            (buffer-substring-no-properties (point-min) (point-max))))
+                    )))
           (error "authenticate '%s' faild. reason: %s"
                  evelnote-username
                  (buffer-substring-no-properties (point-min) (point-max))))
-        ))))
+          ))))))
 
 (defun* evelnote-save (note)
   (unless (evelnote-note-p note)

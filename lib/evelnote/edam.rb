@@ -12,6 +12,7 @@ module Evelnote
     attr_reader :auth
 
     def initialize(*args)
+      Evelnote.logger.info("test")
       options = args.last.is_a?(Hash) ? args.pop : {}
       @username = args.shift
       @password = args.shift
@@ -21,7 +22,7 @@ module Evelnote
       error = nil
       begin
         @auth = userstore.authenticate(username, password,
-          CONSUMER_KEY, CONSUMER_SECRET)
+                                       CONSUMER_KEY, CONSUMER_SECRET)
       rescue => error
       end
 
