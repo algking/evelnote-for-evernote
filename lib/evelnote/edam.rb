@@ -26,19 +26,23 @@ module Evelnote
       rescue => error
       end
 
-      yield error
+      if block_given?
+        yield error
+      else
+        raise error if error
+      end
     end
 
     def notebooks(cache=true)
       @notebooks = nil unless cache
-      @notebooks ||= notestore.listNotebooks(auth_token)      
+      @notebooks ||= notestore_send :listNotebooks, auth_token      
     end
 
     def default_notebook(cache=true)
       @default_notebook = nil unless cache
       @default_notebook ||=
         (@notebooks && @notebooks.detect{|notebook| notebook.defaultNotebook }) ||
-        notestore.getDefaultNotebook(auth_token)
+        (notestore_send :getDefaultNotebook, auth_token)
     end
 
     def tags(cache=true)
@@ -48,15 +52,15 @@ module Evelnote
     def query(q, options={})
       filter = Evernote::EDAM::NoteStore::NoteFilter.new
       filter.words = q
-      notestore.findNotes(auth_token, filter, 0, 100)
+      notestore_send :findNotes, auth_token, filter, 0, 100
     end
 
     def get_note(guid, options={})
-      note = notestore.getNote(auth_token, guid,
-                               options[:with_content],
-                               options[:with_resources_data],
-                               options[:with_resources_recognition],
-                               options[:with_resources_alternate_data])
+      note = notestore_send(:getNote, auth_token, guid,
+                            options[:with_content],
+                            options[:with_resources_data],
+                            options[:with_resources_recognition],
+                            options[:with_resources_alternate_data])
       if note.content
         content = Evelnote::ENML::ENNote.new(note.content).content
         note.content =
@@ -81,7 +85,7 @@ module Evelnote
       note.tagNames     = (options[:tag_names] || note.tagNames)
       note.content      = Evelnote::ENML::ENNote.new(content_html).to_enml
       
-      notestore.send((note.active ? :updateNote : :createNote), auth_token, note)
+      notestore_send((note.active ? :updateNote : :createNote), auth_token, note)
     end
 
     private
@@ -113,7 +117,7 @@ module Evelnote
     end
 
     def notestore
-      return @notestore if @notestore
+      return @notestore if defined? @notestore
 
       notestore_url = File.join(NOTESTORE_URL_BASE, auth.user.shardId)
       notestore_transport = Thrift::HTTPClientTransport.new(notestore_url)
@@ -121,8 +125,14 @@ module Evelnote
       @notestore = Evernote::EDAM::NoteStore::NoteStore::Client.new(notestore_protocol)
     end
   end
-
+  
   def notestore_send(method_name, *args)
-    
+    begin
+      notestore.send(method_name, *args)
+    rescue Evernote::EDAM::Error::EDAMUserException => e
+      # タイムアウトかもしれないので一回だけつなぎ直す
+      authenticate!
+      notestore.send(method_name, *args)
+    end
   end
 end

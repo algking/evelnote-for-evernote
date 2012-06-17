@@ -544,8 +544,7 @@ BUFFER defaults to the current buffer."
 (defvar evelnote-mode-map (make-sparse-keymap))
 (dolist (key-info '(("\C-x\C-s" . evelnote-save-buffer)
                     ("\C-x\C-r" . evelnote-reload)
-                    ;; ("\C-x\C-d" . evelnote-jump-to-parent-notelist))
-                  )
+                    ))
   (define-key evelnote-mode-map (car key-info) (cdr key-info)))
 
 ;; evelnote-note-buffer methods
